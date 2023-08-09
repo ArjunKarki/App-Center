@@ -5,7 +5,7 @@
  * @format
  */
 
-import React from 'react';
+import React, {useEffect, useState} from 'react';
 import type {PropsWithChildren} from 'react';
 import {
   SafeAreaView,
@@ -24,10 +24,16 @@ import {
   LearnMoreLinks,
   ReloadInstructions,
 } from 'react-native/Libraries/NewAppScreen';
+import CodePush from 'react-native-code-push';
 
 type SectionProps = PropsWithChildren<{
   title: string;
 }>;
+
+const CodePushOptions = {
+  installMode: CodePush.InstallMode.IMMEDIATE,
+  updateDialog: true,
+};
 
 function Section({children, title}: SectionProps): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
@@ -58,8 +64,52 @@ function Section({children, title}: SectionProps): JSX.Element {
 function App(): JSX.Element {
   const isDarkMode = useColorScheme() === 'dark';
 
+  const [status, setStatus] = useState('NOOOOO...');
+
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  };
+
+  const codePushStatusDidChange = (syncStatus: any) => {
+    switch (syncStatus) {
+      case CodePush.SyncStatus.CHECKING_FOR_UPDATE:
+        setStatus('Checking for update.');
+        break;
+      case CodePush.SyncStatus.DOWNLOADING_PACKAGE:
+        setStatus('Downloading package.');
+        break;
+      case CodePush.SyncStatus.AWAITING_USER_ACTION:
+        setStatus('Awaiting user action.');
+        break;
+      case CodePush.SyncStatus.INSTALLING_UPDATE:
+        setStatus('Installing update.');
+        break;
+      case CodePush.SyncStatus.UP_TO_DATE:
+        setStatus('App up to date.');
+        break;
+      case CodePush.SyncStatus.UPDATE_IGNORED:
+        setStatus('Update cancelled by user.');
+        break;
+      case CodePush.SyncStatus.UPDATE_INSTALLED:
+        setStatus('Update installed and will be applied on restart.');
+        break;
+      case CodePush.SyncStatus.UNKNOWN_ERROR:
+        setStatus('An unknown error occurred.');
+        break;
+      default:
+        setStatus('Fuck off..........');
+    }
+  };
+
+  useEffect(() => {
+    syncImmediate();
+  }, []);
+
+  const syncImmediate = () => {
+    CodePush.sync(
+      {installMode: CodePush.InstallMode.IMMEDIATE},
+      codePushStatusDidChange,
+    );
   };
 
   return (
@@ -71,11 +121,12 @@ function App(): JSX.Element {
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
         style={backgroundStyle}>
-        <Header />
+        {/* <Header /> */}
         <View
           style={{
             backgroundColor: isDarkMode ? Colors.black : Colors.white,
           }}>
+          <Text style={{fontSize: 20, color: 'black'}}>{status}</Text>
           <Section title="Step One">
             Edit <Text style={styles.highlight}>App.tsx</Text> to change this
             screen and then come back to see your edits.
@@ -115,4 +166,5 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+const MyApp = CodePush(CodePushOptions)(App);
+export default MyApp;
